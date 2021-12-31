@@ -1,6 +1,6 @@
 use std::fmt;
 
-#[derive(Debug, Hash, Eq, PartialEq)]
+#[derive(Debug, Hash, Eq, PartialEq, Clone)]
 pub struct Overlap {
     pub right_place: u8,
     pub wrong_place: u8,

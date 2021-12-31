@@ -42,14 +42,20 @@ fn calculate_word_overlap(actual: &[char], guess: &[char]) -> Overlap {
     Overlap::new(wrong_place, right_place)
 }
 
-fn best_clue(words_list: &Vec<Vec<char>>) -> Clue {
+fn fast_calculate_word_overlap(word_overlaps: &Vec<Overlap>, word_count: usize, i: usize, j: usize) -> Overlap {
+    word_overlaps[i * word_count + j].clone()
+}
+
+fn best_clue(word_overlaps: &Vec<Overlap>, word_count: usize, words_list: &Vec<Vec<char>>) -> Clue {
     words_list
         .par_iter()
-        .map(|word| {
+        .enumerate()
+        .map(|(i, word)| {
             let mut bucket_counts = [0; 26];
 
-            for other_word in words_list {
-                let overlap = calculate_word_overlap(&word, &other_word);
+            for j in 0..words_list.len() {
+                let overlap = fast_calculate_word_overlap(&word_overlaps, word_count, i, j);
+                // let overlap = calculate_word_overlap(&word, &words_list[j]);
 
                 bucket_counts[(overlap.right_place * 5 + overlap.wrong_place) as usize] += 1;
             }
@@ -81,33 +87,33 @@ fn read_u8_from_stdin() -> u8 {
     buffer.trim().parse::<u8>().unwrap()
 }
 
-fn solve(initial_words_list: &Vec<Vec<char>>) {
-    let mut current_words_list = initial_words_list.clone();
+// fn solve(initial_words_list: &Vec<Vec<char>>) {
+//     let mut current_words_list = initial_words_list.clone();
 
-    while current_words_list.len() > 1 {
-        let next_clue = best_clue(&current_words_list);
-        println!("Best clue is: {:?}", next_clue.word);
+//     while current_words_list.len() > 1 {
+//         let next_clue = best_clue(&current_words_list);
+//         println!("Best clue is: {:?}", next_clue.word);
 
-        println!("Wrong place? :");
-        let wrong_place = read_u8_from_stdin();
+//         println!("Wrong place? :");
+//         let wrong_place = read_u8_from_stdin();
 
-        println!("Right place? :");
-        let right_place = read_u8_from_stdin();
+//         println!("Right place? :");
+//         let right_place = read_u8_from_stdin();
 
-        let overlap = Overlap::new(wrong_place, right_place);
+//         let overlap = Overlap::new(wrong_place, right_place);
 
-        current_words_list.retain(|v| calculate_word_overlap(&*v, &next_clue.word) == overlap);
-    }
+//         current_words_list.retain(|v| calculate_word_overlap(&*v, &next_clue.word) == overlap);
+//     }
 
-    println!("Answer is: {:?}", current_words_list);
-}
+//     println!("Answer is: {:?}", current_words_list);
+// }
 
-fn solve_auto(initial_words_list: &Vec<Vec<char>>, word: &[char]) -> Vec<Clue> {
+fn solve_auto(word_overlaps: &Vec<Overlap>, initial_words_list: &Vec<Vec<char>>, word: &[char]) -> Vec<Clue> {
     let mut current_words_list = initial_words_list.clone();
     let mut sequence = Vec::new();
 
     while current_words_list.len() > 1 {
-        let next_clue = best_clue(&current_words_list);
+        let next_clue = best_clue(word_overlaps, initial_words_list.len(), &current_words_list);
         let overlap = calculate_word_overlap(&next_clue.word, word);
 
         sequence.push(next_clue.clone());
@@ -122,20 +128,39 @@ fn c(a: &str) -> Vec<char> {
     a.chars().collect()
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn precompute_calculate_word_overlap(words: &Vec<Vec<char>>) -> Vec<Overlap> {
+    let mut solutions: Vec<Overlap> = Vec::with_capacity(74580496);
+    
+    for i in 0..words.len() {
+        for j in 0..words.len() {
+            solutions.push(calculate_word_overlap(&words[i], &words[j]))
+        }
+    }
+
+    println!("Precomputed solutions: {}", solutions.len());
+
+    solutions
+}
+
+fn precompute_wrapper() ->  Result<(Vec<Vec<char>>, Vec<Overlap>), Box<dyn Error>> {
+    let timed_precompute = Instant::now();
+
     let lines = read_lines("./data/words5.txt")?;
+
+    let word_overlaps = precompute_calculate_word_overlap(&lines);
+    println!("Timed precompute as: {:.2?}", timed_precompute.elapsed());
+
+    Ok((lines, word_overlaps))
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let (lines, word_overlaps) = precompute_wrapper()?;
+
     let now = Instant::now();
-
-    // dbg!(calculate_word_overlap(&c("plant"), &c("areas")));
-    // dbg!(calculate_word_overlap(&c("plant"), &c("donee")));
-    // dbg!(calculate_word_overlap(&c("plant"), &c("sloth")));
-    // dbg!(calculate_word_overlap(&c("plant"), &c("skint")));
-
-    // solve(&lines);
     // solve_auto(&lines, &c("plant"));
 
-    for line in lines[100..101].iter() {
-        let result = solve_auto(&lines, line);
+    for line in lines[100..111].iter() {
+        let result = solve_auto(&word_overlaps, &lines, line);
 
         println!(
             "{}",
@@ -150,4 +175,19 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("Elapsed after time: {:.2?}", now.elapsed());
 
     Ok(())
+}
+
+
+#[cfg(test)]
+mod tests {
+    // Note this useful idiom: importing names from outer (for mod tests) scope.
+    use super::*;
+
+    #[test]
+    fn test_calculate_word_overlap() {
+        assert_eq!(calculate_word_overlap(&c("plant"), &c("areas")), Overlap::new(1, 0));
+        assert_eq!(calculate_word_overlap(&c("plant"), &c("donee")), Overlap::new(1, 0));
+        assert_eq!(calculate_word_overlap(&c("plant"), &c("sloth")), Overlap::new(1, 1));
+        assert_eq!(calculate_word_overlap(&c("plant"), &c("skint")), Overlap::new(0, 2));
+    }
 }
