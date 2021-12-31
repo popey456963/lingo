@@ -1,0 +1,12 @@
+[package]
+name = "lingo"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[unstable]
+iter_intersperse = true
+
+[dependencies]
+rayon = "1.5.1"
