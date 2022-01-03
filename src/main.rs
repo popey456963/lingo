@@ -159,7 +159,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let now = Instant::now();
     // solve_auto(&lines, &c("plant"));
 
-    for line in lines[100..111].iter() {
+    for line in lines[100..201].iter() {
         let result = solve_auto(&word_overlaps, &lines, line);
 
         println!(
