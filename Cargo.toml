@@ -10,3 +10,13 @@ iter_intersperse = true
 
 [dependencies]
 rayon = "1.5.1"
+
+[profile.release]
+opt-level = 3
+debug = false
+split-debuginfo = '...'  # Platform-specific.
+debug-assertions = false
+overflow-checks = false
+lto = "fat"
+codegen-units = 1
+rpath = false

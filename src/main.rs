@@ -1,19 +1,19 @@
 #![feature(iter_intersperse)]
 
-mod structs;
 mod file;
+mod structs;
 
 use rayon::prelude::*;
 use std::error::Error;
 use std::time::Instant;
 
-use structs::{Overlap,Clue};
 use file::read_lines;
+use structs::{Clue, Overlap};
 
 #[allow(dead_code)]
 enum ScoreType {
     MinimiseVariance,
-    MinimiseLargestBucketSize
+    MinimiseLargestBucketSize,
 }
 
 static SCORE_METHOD: ScoreType = ScoreType::MinimiseLargestBucketSize;
@@ -42,7 +42,12 @@ fn calculate_word_overlap(actual: &[char], guess: &[char]) -> Overlap {
     Overlap::new(wrong_place, right_place)
 }
 
-fn fast_calculate_word_overlap(word_overlaps: &Vec<Overlap>, word_count: usize, i: usize, j: usize) -> Overlap {
+fn fast_calculate_word_overlap(
+    word_overlaps: &Vec<Overlap>,
+    word_count: usize,
+    i: usize,
+    j: usize,
+) -> Overlap {
     word_overlaps[i * word_count + j].clone()
 }
 
@@ -61,8 +66,7 @@ fn best_clue(word_overlaps: &Vec<Overlap>, word_count: usize, words_list: &Vec<V
             }
 
             let value = match &SCORE_METHOD {
-                ScoreType::MinimiseLargestBucketSize => 
-                    *bucket_counts.iter().max().unwrap(),
+                ScoreType::MinimiseLargestBucketSize => *bucket_counts.iter().max().unwrap(),
                 ScoreType::MinimiseVariance => {
                     let average = bucket_counts.iter().sum::<usize>() / bucket_counts.len();
                     bucket_counts
@@ -108,7 +112,11 @@ fn read_u8_from_stdin() -> u8 {
 //     println!("Answer is: {:?}", current_words_list);
 // }
 
-fn solve_auto(word_overlaps: &Vec<Overlap>, initial_words_list: &Vec<Vec<char>>, word: &[char]) -> Vec<Clue> {
+fn solve_auto(
+    word_overlaps: &Vec<Overlap>,
+    initial_words_list: &Vec<Vec<char>>,
+    word: &[char],
+) -> Vec<Clue> {
     let mut current_words_list = initial_words_list.clone();
     let mut sequence = Vec::new();
 
@@ -130,7 +138,7 @@ fn c(a: &str) -> Vec<char> {
 
 fn precompute_calculate_word_overlap(words: &Vec<Vec<char>>) -> Vec<Overlap> {
     let mut solutions: Vec<Overlap> = Vec::with_capacity(74580496);
-    
+
     for i in 0..words.len() {
         for j in 0..words.len() {
             solutions.push(calculate_word_overlap(&words[i], &words[j]))
@@ -142,7 +150,7 @@ fn precompute_calculate_word_overlap(words: &Vec<Vec<char>>) -> Vec<Overlap> {
     solutions
 }
 
-fn precompute_wrapper() ->  Result<(Vec<Vec<char>>, Vec<Overlap>), Box<dyn Error>> {
+fn precompute_wrapper() -> Result<(Vec<Vec<char>>, Vec<Overlap>), Box<dyn Error>> {
     let timed_precompute = Instant::now();
 
     let lines = read_lines("./data/words5.txt")?;
@@ -159,7 +167,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let now = Instant::now();
     // solve_auto(&lines, &c("plant"));
 
-    for line in lines[100..201].iter() {
+    for line in lines[100..401].iter() {
         let result = solve_auto(&word_overlaps, &lines, line);
 
         println!(
@@ -177,7 +185,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-
 #[cfg(test)]
 mod tests {
     // Note this useful idiom: importing names from outer (for mod tests) scope.
@@ -185,9 +192,21 @@ mod tests {
 
     #[test]
     fn test_calculate_word_overlap() {
-        assert_eq!(calculate_word_overlap(&c("plant"), &c("areas")), Overlap::new(1, 0));
-        assert_eq!(calculate_word_overlap(&c("plant"), &c("donee")), Overlap::new(1, 0));
-        assert_eq!(calculate_word_overlap(&c("plant"), &c("sloth")), Overlap::new(1, 1));
-        assert_eq!(calculate_word_overlap(&c("plant"), &c("skint")), Overlap::new(0, 2));
+        assert_eq!(
+            calculate_word_overlap(&c("plant"), &c("areas")),
+            Overlap::new(1, 0)
+        );
+        assert_eq!(
+            calculate_word_overlap(&c("plant"), &c("donee")),
+            Overlap::new(1, 0)
+        );
+        assert_eq!(
+            calculate_word_overlap(&c("plant"), &c("sloth")),
+            Overlap::new(1, 1)
+        );
+        assert_eq!(
+            calculate_word_overlap(&c("plant"), &c("skint")),
+            Overlap::new(0, 2)
+        );
     }
 }
